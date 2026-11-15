@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="utf-8">
+<title>Postar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Postar">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#eef1ee" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#121614" media="(prefers-color-scheme: dark)">
+<link rel="apple-touch-icon" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALQAAAC0CAIAAACyr5FlAAACRklEQVR42u3dvU1DMRSAUcdKB4tkCDaBComWWWhpsxNZhAFYAJQUxL4/55sgtg7XPIHzDg/PX0P6rWkLBIfgEByCQ3AIDsEhOASH4JDgEByCQ3AIDsEhOASH4BAcEhyCQ3AIDsEhOASH4BAcgkOCQ3AIDsEhOASH4BAcgkNwCA4JDt3eMdSn+Xg75d3K989LMRyHCF+Mn9pEYSWbcRRjUYzIJMPqYk2O2izKjJBJhvV6lFV4HN3GRupVT3tk7Y4VBcbReWwk3QGTQ3AoLA5nSsZ9MDkEh+AQHIJDcAgOwSE4BIfgkOAQHIJDo81d2f/q9SnyZ7vyV/vHlwscvUzc3vf5FETJEYvgSjYSmWRkGSQmBxaBRsgkwwjxKKs2OLqNjS3DY5LBh2NFDXB0HhuLh4fJIThUHoczZeXJYnIIDsEhOASH4FBrHPXeRQKH4JD24nCywCE4DA84+IBDioHD8IDjig9E4DBC4DBChu/nuPMI8eaN4aXDI+GV82gtuFftUVZwCA7BITgEh+AQHIJDcAgOCQ7BITgEx4j3LpIO+2ByCA51wOFkWbYDJodq4eg8PFaufdojq3asqBOObsNj/XqT3VsZLS+z7PoxmPbO6ipPjqojxBup77Kbbk3CkeygSUfWo6zfjeDgAw7BYXjAwQccfMChZD7g4AMOPuDgAw4+4OADDjlWlGx4wMEHHHzAwcfwP6QyOQSH4BAcgkNwCA4JDsEhOASH4BAcgkNwCA7BIcEhOASH4BAcgkNwCA7BITgkOPRnPzOehyIng/YhAAAAAElFTkSuQmCC">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: uma coluna de telemóvel. Editor em cima, redes e botão a seguir, contas no fim. */
+:root {
+  --bg: #eef1ee;
+  --surface: #ffffff;
+  --ink: #17201c;
+  --muted: #5d6963;
+  --line: #d3dad5;
+  --accent: #0b5cd6;
+  --accent-ink: #ffffff;
+  --good: #1a7f4b;
+  --bad: #b3261e;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", sans-serif;
+  --font-body: "IBM Plex Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121614;
+    --surface: #1b211e;
+    --ink: #e9eeeb;
+    --muted: #9aa7a0;
+    --line: #2f3833;
+    --accent: #6ea4ff;
+    --accent-ink: #08142b;
+    --good: #5fd39a;
+    --bad: #ff8a80;
+    color-scheme: dark;
+  }
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 400 16px/1.45 var(--font-body);
+  -webkit-text-size-adjust: 100%;
+  padding: calc(env(safe-area-inset-top) + 14px) calc(env(safe-area-inset-right) + 16px)
+           calc(env(safe-area-inset-bottom) + 24px) calc(env(safe-area-inset-left) + 16px);
+}
+main { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+h1 { font: 700 30px/1 var(--font-display); letter-spacing: -0.02em; margin: 0; }
+h2 { font: 600 18px/1.2 var(--font-display); margin: 0; }
+.sub { color: var(--muted); font-size: 14px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+.editor { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+textarea {
+  width: 100%; min-height: 168px; resize: vertical; border: 0; outline: 0; padding: 4px;
+  background: transparent; color: var(--ink); font: 400 17px/1.45 var(--font-body);
+}
+.counts { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px; }
+.count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.count b { color: var(--ink); font-weight: 600; }
+.count.over, .count.over b { color: var(--bad); }
+
+.nets { display: flex; flex-direction: column; }
+.net { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 56px; }
+.net + .net { border-top: 1px solid var(--line); }
+.net label { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; font-weight: 500; }
+.net input[type=checkbox] { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+.state { font-size: 13px; color: var(--muted); text-align: right; overflow-wrap: anywhere; max-width: 60%; }
+.state.ok { color: var(--good); font-weight: 600; }
+.state.err { color: var(--bad); }
+.state a { color: inherit; }
+
+button {
+  font: 600 17px/1 var(--font-body); border-radius: 12px; border: 1px solid transparent;
+  min-height: 50px; padding: 0 18px; cursor: pointer;
+}
+.primary { background: var(--accent); color: var(--accent-ink); width: 100%; }
+.primary:disabled { opacity: .45; cursor: default; }
+.quiet { background: transparent; color: var(--accent); border-color: var(--line); min-height: 40px; font-size: 15px; }
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 2px;
+}
+
+.accounts { padding: 14px 12px; display: flex; flex-direction: column; gap: 14px; }
+.accounts[hidden] { display: none; }
+fieldset { border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+legend { font: 600 15px/1.2 var(--font-display); padding: 0; margin-bottom: 6px; }
+.field { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--muted); }
+.field input, .field select {
+  font: 400 16px/1.2 var(--font-body); color: var(--ink); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%;
+}
+.note { font-size: 13px; color: var(--muted); margin: 0; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+@media (prefers-reduced-motion: no-preference) { button { transition: opacity .15s; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Postar</h1>
+    <button class="quiet" id="toggle-accounts" type="button" aria-expanded="false" aria-controls="accounts">Contas</button>
+  </header>
+
+  <section class="card editor" aria-label="Texto do post">
+    <textarea id="text" placeholder="Escreve o post…" autocapitalize="sentences"></textarea>
+    <div class="counts">
+      <span class="count" id="count-masto">Mastodon <b>0</b>/500</span>
+      <span class="count" id="count-bsky">Bluesky <b>0</b>/300</span>
+    </div>
+  </section>
+
+  <section class="card nets" aria-label="Redes">
+    <div class="net">
+      <label for="on-masto"><input type="checkbox" id="on-masto" checked> Mastodon</label>
+      <span class="state" id="state-masto" role="status"></span>
+    </div>
+    <div class="net">
+      <label for="on-bsky"><input type="checkbox" id="on-bsky" checked> Bluesky</label>
+      <span class="state" id="state-bsky" role="status"></span>
+    </div>
+  </section>
+
+  <button class="primary" id="send" type="button">Publicar</button>
+
+  <section class="card accounts" id="accounts" hidden aria-label="Contas">
+    <div>
+      <h2>Contas</h2>
+      <p class="note">As credenciais ficam guardadas só neste iPhone e são enviadas apenas à tua instância Mastodon e ao Bluesky.</p>
+    </div>
+    <fieldset>
+      <legend>Mastodon</legend>
+      <label class="field" for="m-url">Instância
+        <input id="m-url" type="url" inputmode="url" placeholder="https://mastodon.social" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" for="m-token">Access token (âmbito write:statuses)
+        <input id="m-token" type="password" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" for="m-vis">Visibilidade
+        <select id="m-vis">
+          <option value="public">Pública</option>
+          <option value="unlisted">Não listada</option>
+          <option value="private">Só seguidores</option>
+        </select>
+      </label>
+    </fieldset>
+    <fieldset>
+      <legend>Bluesky</legend>
+      <label class="field" for="b-handle">Handle
+        <input id="b-handle" type="text" placeholder="nome.bsky.social" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" for="b-pass">Palavra-passe de aplicação
+        <input id="b-pass" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+      <label class="field" for="b-pds">Servidor
+        <input id="b-pds" type="url" inputmode="url" placeholder="https://bsky.social" autocapitalize="none" autocorrect="off" spellcheck="false">
+      </label>
+    </fieldset>
+    <div class="row">
+      <button class="quiet" id="save" type="button">Guardar contas</button>
+      <span class="sub" id="save-note" role="status"></span>
+    </div>
+  </section>
+</main>
+
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+const LIMITS = { masto: 500, bsky: 300 };
+const KEY_CFG = "postar.cfg", KEY_DRAFT = "postar.rascunho";
+
+// --- Armazenamento local (pode falhar em modo privado) ---
+const store = {
+  get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+};
+let cfg = Object.assign({ mUrl: "", mToken: "", mVis: "public", bHandle: "", bPass: "", bPds: "" }, store.get(KEY_CFG, {}));
+
+// --- Utilitários de texto ---
+// Conta grafemas (o Bluesky limita a 300 grafemas, não a 300 bytes)
+function graphemes(s) {
+  if (window.Intl && Intl.Segmenter) return [...new Intl.Segmenter().segment(s)].length;
+  return [...s].length;
+}
+// O Bluesky não cria links sozinho: é preciso indicar posições em bytes UTF-8 (facets)
+function buildFacets(text) {
+  const enc = new TextEncoder();
+  const bytes = s => enc.encode(s).length;
+  const facets = [];
+  for (const m of text.matchAll(/https?:\/\/[^\s<>"']+/g)) {
+    const uri = m[0].replace(/[.,;:!?)\]]+$/, "");
+    const start = bytes(text.slice(0, m.index));
+    facets.push({ index: { byteStart: start, byteEnd: start + bytes(uri) },
+                  features: [{ $type: "app.bsky.richtext.facet#link", uri }] });
+  }
+  for (const m of text.matchAll(/(^|\s)#([\p{L}\p{N}_]+)/gu)) {
+    if (/^\d+$/.test(m[2])) continue; // "#123" não é hashtag
+    const start = bytes(text.slice(0, m.index + m[1].length));
+    facets.push({ index: { byteStart: start, byteEnd: start + bytes("#" + m[2]) },
+                  features: [{ $type: "app.bsky.richtext.facet#tag", tag: m[2] }] });
+  }
+  return facets;
+}
+function normUrl(u, fallback) {
+  u = (u || "").trim() || fallback || "";
+  if (u && !/^https?:\/\//i.test(u)) u = "https://" + u;
+  return u.replace(/\/+$/, "");
+}
+async function readError(res) {
+  let msg = "";
+  try { const j = await res.json(); msg = j.error_description || j.message || j.error || ""; } catch {}
+  if (res.status === 401) return "Credenciais recusadas. Confirma-as em Contas.";
+  return msg ? `${msg} (${res.status})` : `Erro ${res.status}`;
+}
+
+// --- Publicação ---
+async function postMastodon(text) {
+  const base = normUrl(cfg.mUrl);
+  const res = await fetch(base + "/api/v1/statuses", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + cfg.mToken.trim(), "Content-Type": "application/json" },
+    body: JSON.stringify({ status: text, visibility: cfg.mVis })
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()).url;
+}
+async function postBluesky(text) {
+  const pds = normUrl(cfg.bPds, "https://bsky.social");
+  const handle = cfg.bHandle.trim().replace(/^@/, "");
+  const login = await fetch(pds + "/xrpc/com.atproto.server.createSession", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ identifier: handle, password: cfg.bPass.trim() })
+  });
+  if (!login.ok) throw new Error(await readError(login));
+  const s = await login.json();
+  const record = { $type: "app.bsky.feed.post", text, createdAt: new Date().toISOString() };
+  const facets = buildFacets(text);
+  if (facets.length) record.facets = facets;
+  const res = await fetch(pds + "/xrpc/com.atproto.repo.createRecord", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + s.accessJwt, "Content-Type": "application/json" },
+    body: JSON.stringify({ repo: s.did, collection: "app.bsky.feed.post", record })
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  const rkey = (await res.json()).uri.split("/").pop();
+  return `https://bsky.app/profile/${s.handle || handle}/post/${rkey}`;
+}
+
+// --- Interface ---
+const nets = {
+  masto: { ready: () => !!(cfg.mUrl.trim() && cfg.mToken.trim()), post: postMastodon },
+  bsky:  { ready: () => !!(cfg.bHandle.trim() && cfg.bPass.trim()), post: postBluesky }
+};
+let sending = false;
+
+function setState(net, text, cls, href) {
+  const el = $("state-" + net);
+  el.className = "state" + (cls ? " " + cls : "");
+  el.textContent = "";
+  if (href) { const a = document.createElement("a"); a.href = href; a.target = "_blank"; a.rel = "noopener"; a.textContent = text; el.append(a); }
+  else el.textContent = text;
+}
+function refresh(resetStates) {
+  const text = $("text").value, n = graphemes(text.trim());
+  let blocked = !n;
+  let any = false;
+  for (const net of Object.keys(nets)) {
+    const c = $("count-" + net);
+    c.querySelector("b").textContent = n;
+    const on = $("on-" + net).checked, over = n > LIMITS[net];
+    c.classList.toggle("over", over);
+    if (resetStates) setState(net, nets[net].ready() ? "Pronto" : "Falta configurar");
+    if (on) { any = true; if (over || !nets[net].ready()) blocked = true; }
+  }
+  $("send").disabled = sending || blocked || !any;
+}
+function showAccounts(open) {
+  $("accounts").hidden = !open;
+  $("toggle-accounts").setAttribute("aria-expanded", String(open));
+  $("toggle-accounts").textContent = open ? "Fechar contas" : "Contas";
+}
+function fillForm() {
+  $("m-url").value = cfg.mUrl; $("m-token").value = cfg.mToken; $("m-vis").value = cfg.mVis;
+  $("b-handle").value = cfg.bHandle; $("b-pass").value = cfg.bPass; $("b-pds").value = cfg.bPds;
+}
+
+$("toggle-accounts").addEventListener("click", () => showAccounts($("accounts").hidden));
+$("save").addEventListener("click", () => {
+  cfg = { mUrl: $("m-url").value, mToken: $("m-token").value, mVis: $("m-vis").value,
+          bHandle: $("b-handle").value, bPass: $("b-pass").value, bPds: $("b-pds").value };
+  $("save-note").textContent = store.set(KEY_CFG, cfg) ? "Guardado." : "Não foi possível guardar neste dispositivo.";
+  refresh(true);
+});
+$("text").addEventListener("input", () => { store.set(KEY_DRAFT, $("text").value); refresh(false); });
+for (const net of Object.keys(nets)) $("on-" + net).addEventListener("change", () => refresh(false));
+
+$("send").addEventListener("click", async () => {
+  if (sending) return;
+  const text = $("text").value.trim();
+  const chosen = Object.keys(nets).filter(n => $("on-" + n).checked);
+  sending = true; refresh(false);
+  $("send").textContent = "A publicar…";
+  // As duas redes são independentes: a falha de uma não impede a outra
+  const results = await Promise.all(chosen.map(async net => {
+    setState(net, "A enviar…");
+    try {
+      const url = await nets[net].post(text);
+      setState(net, "Publicado. Abrir", "ok", url);
+      return true;
+    } catch (e) {
+      const offline = e instanceof TypeError;
+      setState(net, offline ? "Sem ligação ou servidor inacessível. Tenta de novo." : e.message, "err");
+      return false;
+    }
+  }));
+  sending = false;
+  $("send").textContent = "Publicar";
+  if (results.every(Boolean)) {
+    $("text").value = ""; store.set(KEY_DRAFT, "");
+  } else {
+    // Mantém o texto e desmarca as redes já publicadas, para não duplicar ao repetir
+    chosen.forEach((net, i) => { if (results[i]) $("on-" + net).checked = false; });
+  }
+  refresh(false);
+});
+
+// Arranque
+fillForm();
+$("text").value = store.get(KEY_DRAFT, "");
+showAccounts(!nets.masto.ready() && !nets.bsky.ready());
+refresh(true);
+</script>
+</body>
+</html>
