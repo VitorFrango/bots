@@ -67,10 +67,22 @@ textarea {
   width: 100%; min-height: 168px; resize: vertical; border: 0; outline: 0; padding: 4px;
   background: transparent; color: var(--ink); font: 400 17px/1.45 var(--font-body);
 }
-.counts { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 10px; }
+.counts { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; border-top: 1px solid var(--line); padding-top: 10px; }
 .count { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .count b { color: var(--ink); font-weight: 600; }
 .count.over, .count.over b { color: var(--bad); }
+.counts .spacer { flex: 1; }
+
+.images { display: flex; flex-wrap: wrap; gap: 8px; }
+.thumb { position: relative; width: 84px; display: flex; flex-direction: column; gap: 4px; }
+.thumb img { width: 84px; height: 84px; object-fit: cover; border-radius: 10px; border: 1px solid var(--line); display: block; }
+.thumb button { position: absolute; top: -8px; right: -8px; width: 26px; height: 26px; min-height: 0; padding: 0;
+  border-radius: 50%; background: var(--surface); border: 1px solid var(--line); color: var(--ink); font-size: 15px; line-height: 1; }
+.thumb input { width: 84px; font-size: 11px; padding: 4px 6px; border-radius: 8px; border: 1px solid var(--line);
+  background: var(--bg); color: var(--ink); }
+.add-image { width: 84px; height: 84px; border-radius: 10px; border: 1px dashed var(--line); background: transparent;
+  color: var(--muted); font-size: 28px; min-height: 0; line-height: 1; }
+.add-image:disabled { opacity: .35; }
 
 .nets { display: flex; flex-direction: column; }
 .net { display: flex; align-items: center; gap: 12px; padding: 12px; min-height: 56px; }
@@ -116,9 +128,13 @@ legend { font: 600 15px/1.2 var(--font-display); padding: 0; margin-bottom: 6px;
 
   <section class="card editor" aria-label="Texto do post">
     <textarea id="text" placeholder="Escreve o post…" autocapitalize="sentences"></textarea>
+    <div class="images" id="images"></div>
+    <input type="file" id="file-input" accept="image/*" multiple hidden>
     <div class="counts">
       <span class="count" id="count-masto">Mastodon <b>0</b>/500</span>
       <span class="count" id="count-bsky">Bluesky <b>0</b>/300</span>
+      <span class="spacer"></span>
+      <button class="quiet" id="add-image" type="button">+ Imagem</button>
     </div>
   </section>
 
@@ -219,24 +235,85 @@ function normUrl(u, fallback) {
   return u.replace(/\/+$/, "");
 }
 async function readError(res) {
+  const clone = res.clone();
   let msg = "";
   try { const j = await res.json(); msg = j.error_description || j.message || j.error || ""; } catch {}
   if (res.status === 401) return "Credenciais recusadas. Confirma-as em Contas.";
+  if (!msg) { try { msg = (await clone.text()).trim().slice(0, 200); } catch {} }
   return msg ? `${msg} (${res.status})` : `Erro ${res.status}`;
 }
 
+// --- Imagens: redimensiona para no máx. 2048px e converte para JPEG (GIF fica tal e qual, por causa da animação) ---
+const MAX_IMAGES = 4;
+let images = []; // { id, file, url, alt }
+async function processImage(file) {
+  if (file.type === "image/gif") return file;
+  const dataUrl = await new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result); r.onerror = rej; r.readAsDataURL(file);
+  });
+  const img = await new Promise((res, rej) => {
+    const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = dataUrl;
+  });
+  const maxDim = 2048;
+  let { width, height } = img;
+  if (width > maxDim || height > maxDim) {
+    const scale = maxDim / Math.max(width, height);
+    width = Math.round(width * scale); height = Math.round(height * scale);
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = width; canvas.height = height;
+  canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+  const blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", 0.85));
+  return new File([blob], file.name.replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" });
+}
+
 // --- Publicação ---
-async function postMastodon(text) {
+async function uploadMastodonMedia(file, alt) {
   const base = normUrl(cfg.mUrl);
+  const fd = new FormData();
+  fd.append("file", file);
+  if (alt) fd.append("description", alt);
+  const res = await fetch(base + "/api/v2/media", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + cfg.mToken.trim() },
+    body: fd
+  });
+  if (res.status !== 200 && res.status !== 202) throw new Error(await readError(res));
+  let data = await res.json();
+  // Enquanto o servidor ainda está a processar a imagem (202), espera que fique pronta
+  for (let tries = 0; !data.url && tries < 15; tries++) {
+    await new Promise(r => setTimeout(r, 1000));
+    const check = await fetch(base + "/api/v1/media/" + data.id, { headers: { "Authorization": "Bearer " + cfg.mToken.trim() } });
+    if (!check.ok) throw new Error(await readError(check));
+    data = await check.json();
+  }
+  return data.id;
+}
+async function postMastodon(text, imgs) {
+  const base = normUrl(cfg.mUrl);
+  const mediaIds = [];
+  for (const im of imgs) mediaIds.push(await uploadMastodonMedia(im.file, im.alt));
+  const body = { status: text, visibility: cfg.mVis };
+  if (mediaIds.length) body.media_ids = mediaIds;
   const res = await fetch(base + "/api/v1/statuses", {
     method: "POST",
     headers: { "Authorization": "Bearer " + cfg.mToken.trim(), "Content-Type": "application/json" },
-    body: JSON.stringify({ status: text, visibility: cfg.mVis })
+    body: JSON.stringify(body)
   });
   if (!res.ok) throw new Error(await readError(res));
   return (await res.json()).url;
 }
-async function postBluesky(text) {
+async function uploadBlueskyBlob(pds, token, file) {
+  const res = await fetch(pds + "/xrpc/com.atproto.repo.uploadBlob", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token, "Content-Type": file.type || "application/octet-stream" },
+    body: file
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return (await res.json()).blob;
+}
+async function postBluesky(text, imgs) {
   const pds = normUrl(cfg.bPds, "https://bsky.social");
   const handle = cfg.bHandle.trim().replace(/^@/, "");
   const login = await fetch(pds + "/xrpc/com.atproto.server.createSession", {
@@ -249,6 +326,11 @@ async function postBluesky(text) {
   const record = { $type: "app.bsky.feed.post", text, createdAt: new Date().toISOString() };
   const facets = buildFacets(text);
   if (facets.length) record.facets = facets;
+  if (imgs.length) {
+    const blobs = [];
+    for (const im of imgs) blobs.push({ image: await uploadBlueskyBlob(pds, s.accessJwt, im.file), alt: im.alt || "" });
+    record.embed = { $type: "app.bsky.embed.images", images: blobs };
+  }
   const res = await fetch(pds + "/xrpc/com.atproto.repo.createRecord", {
     method: "POST",
     headers: { "Authorization": "Bearer " + s.accessJwt, "Content-Type": "application/json" },
@@ -266,6 +348,46 @@ const nets = {
 };
 let sending = false;
 
+function renderImages() {
+  const wrap = $("images");
+  wrap.innerHTML = "";
+  for (const im of images) {
+    const t = document.createElement("div"); t.className = "thumb";
+    const img = document.createElement("img"); img.src = im.url; img.alt = "";
+    const rm = document.createElement("button"); rm.type = "button"; rm.textContent = "×";
+    rm.setAttribute("aria-label", "Remover imagem");
+    rm.addEventListener("click", () => { URL.revokeObjectURL(im.url); images = images.filter(x => x !== im); renderImages(); refresh(false); });
+    const alt = document.createElement("input"); alt.type = "text"; alt.placeholder = "Descrição";
+    alt.value = im.alt; alt.addEventListener("input", () => { im.alt = alt.value; });
+    t.append(img, rm, alt);
+    wrap.append(t);
+  }
+  $("add-image").disabled = images.length >= MAX_IMAGES;
+}
+async function addImageFiles(files) {
+  files = files.slice(0, MAX_IMAGES - images.length);
+  for (const file of files) {
+    try {
+      const processed = await processImage(file);
+      images.push({ file: processed, url: URL.createObjectURL(processed), alt: "" });
+    } catch { /* imagem ilegível: ignora-a */ }
+  }
+  renderImages(); refresh(false);
+}
+$("add-image").addEventListener("click", () => $("file-input").click());
+$("file-input").addEventListener("change", e => {
+  const files = [...e.target.files]; e.target.value = "";
+  addImageFiles(files);
+});
+// Colar uma imagem copiada de outra app (Fotos, Safari, etc.) diretamente no texto
+$("text").addEventListener("paste", e => {
+  const files = [...(e.clipboardData?.items || [])]
+    .filter(it => it.kind === "file" && it.type.startsWith("image/"))
+    .map(it => it.getAsFile())
+    .filter(Boolean);
+  if (files.length) { e.preventDefault(); addImageFiles(files); }
+});
+
 function setState(net, text, cls, href) {
   const el = $("state-" + net);
   el.className = "state" + (cls ? " " + cls : "");
@@ -275,7 +397,7 @@ function setState(net, text, cls, href) {
 }
 function refresh(resetStates) {
   const text = $("text").value, n = graphemes(text.trim());
-  let blocked = !n;
+  let blocked = !n && !images.length;
   let any = false;
   for (const net of Object.keys(nets)) {
     const c = $("count-" + net);
@@ -312,12 +434,12 @@ $("send").addEventListener("click", async () => {
   const text = $("text").value.trim();
   const chosen = Object.keys(nets).filter(n => $("on-" + n).checked);
   sending = true; refresh(false);
-  $("send").textContent = "A publicar…";
+  $("send").textContent = images.length ? "A publicar e a enviar imagens…" : "A publicar…";
   // As duas redes são independentes: a falha de uma não impede a outra
   const results = await Promise.all(chosen.map(async net => {
     setState(net, "A enviar…");
     try {
-      const url = await nets[net].post(text);
+      const url = await nets[net].post(text, images);
       setState(net, "Publicado. Abrir", "ok", url);
       return true;
     } catch (e) {
@@ -330,8 +452,9 @@ $("send").addEventListener("click", async () => {
   $("send").textContent = "Publicar";
   if (results.every(Boolean)) {
     $("text").value = ""; store.set(KEY_DRAFT, "");
+    images.forEach(im => URL.revokeObjectURL(im.url)); images = []; renderImages();
   } else {
-    // Mantém o texto e desmarca as redes já publicadas, para não duplicar ao repetir
+    // Mantém o texto e as imagens, e desmarca as redes já publicadas, para não duplicar ao repetir
     chosen.forEach((net, i) => { if (results[i]) $("on-" + net).checked = false; });
   }
   refresh(false);
